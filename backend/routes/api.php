@@ -66,7 +66,12 @@ Route::get('/stats/tools-count', function () {
 Route::middleware('auth:sanctum')->group(function () {
     
     Route::get('/user', function (Request $request) {
-        return $request->user()->load('roles');
+        $user = $request->user()->load('roles');
+        
+        // Извличаме името на ролята (напр. 'Owner') и го закачаме като просто текстово поле, за да го разпознае Next.js
+        $user->role = $user->roles->first()->name ?? 'User';
+        
+        return $user;
     });
 
     Route::post('/user/avatar', function (Request $request) {
