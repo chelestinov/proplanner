@@ -6,6 +6,65 @@ import { Toaster, toast } from 'react-hot-toast';
 import { UserPlus, Mail, Lock, User, Briefcase, Loader2, KeyRound } from 'lucide-react';
 import Link from 'next/link';
 
+const translations = {
+    bg: {
+        loadingRoles: 'Грешка при зареждане на ролите',
+        reqSubmit: '⏳ Изпращане на заявка...',
+        reqSuccess: 'Успешно! Изчакайте одобрение от админ.',
+        reqError: '❌ Грешка при регистрацията',
+        loginBtnNav: 'Вход',
+        title: 'Нов акаунт',
+        subtitle: 'Създай своя профил',
+        nameLabel: 'Имена',
+        namePlaceholder: 'Иван Иванов',
+        emailLabel: 'Имейл Адрес',
+        emailPlaceholder: 'ivan@example.com',
+        passLabel: 'Парола',
+        passPlaceholder: '••••••••',
+        roleLabel: 'Роля',
+        selectRole: 'Избери роля...',
+        submitBtn: 'РЕГИСТРИРАЙ СЕ',
+        hasAccount: 'Вече имаш акаунт?',
+        loginHere: 'Влез тук'
+    },
+    en: {
+        loadingRoles: 'Error loading roles',
+        reqSubmit: '⏳ Sending request...',
+        reqSuccess: 'Success! Please wait for admin approval.',
+        reqError: '❌ Registration error',
+        loginBtnNav: 'Login',
+        title: 'New Account',
+        subtitle: 'Create your profile',
+        nameLabel: 'Full Name',
+        namePlaceholder: 'John Doe',
+        emailLabel: 'Email Address',
+        emailPlaceholder: 'john@example.com',
+        passLabel: 'Password',
+        passPlaceholder: '••••••••',
+        roleLabel: 'Role',
+        selectRole: 'Select role...',
+        submitBtn: 'REGISTER',
+        hasAccount: 'Already have an account?',
+        loginHere: 'Login here'
+    }
+};
+
+const translateRole = (roleName: string, lang: 'bg' | 'en') => {
+    if (!roleName) return '';
+    const map: any = {
+        owner: { bg: 'Собственик', en: 'Owner' },
+        frontend: { bg: 'Фронтенд', en: 'Frontend' },
+        backend: { bg: 'Бекенд', en: 'Backend' },
+        qa: { bg: 'QA Тестер', en: 'QA' },
+        pm: { bg: 'Мениджър', en: 'PM' },
+        designer: { bg: 'Дизайнер', en: 'Designer' },
+        video_editor: { bg: 'Видео Редактор', en: 'Video Editor' },
+        admin: { bg: 'Админ', en: 'Admin' },
+        user: { bg: 'Потребител', en: 'User' }
+    };
+    return map[roleName.toLowerCase()]?.[lang] || roleName;
+};
+
 export default function Register() {
     const [formData, setFormData] = useState({
         name: '',
@@ -15,31 +74,46 @@ export default function Register() {
     });
     const [roles, setRoles] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [lang, setLang] = useState<'bg' | 'en'>('bg');
+    const [mounted, setMounted] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
+        setMounted(true);
+        const savedLang = localStorage.getItem('app_lang');
+        if (savedLang) setLang(savedLang as 'bg' | 'en');
+
         axios.get('/api/roles').then(res => {
             const filteredRoles = res.data.filter((r: any) => r.name !== 'owner');
             setRoles(filteredRoles);
-        }).catch(() => toast.error("Грешка при зареждане на ролите"));
+        }).catch(() => toast.error(translations[savedLang as 'bg' | 'en' || 'bg'].loadingRoles));
     }, []);
+
+    const changeLang = (newLang: 'bg' | 'en') => {
+        setLang(newLang);
+        localStorage.setItem('app_lang', newLang);
+    };
+
+    const t = translations[lang];
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
-        const toastId = toast.loading('⏳ Изпращане на заявка...');
+        const toastId = toast.loading(t.reqSubmit);
 
         try {
             await axios.get('/sanctum/csrf-cookie');
             await axios.post('/api/register', formData);
-            toast.success('Успешно! Изчакайте одобрение от админ.', { id: toastId, duration: 5000 });
+            toast.success(t.reqSuccess, { id: toastId, duration: 5000 });
             router.push('/login');
         } catch (err: any) {
-            const msg = err.response?.data?.message || '❌ Грешка при регистрацията';
+            const msg = err.response?.data?.message || t.reqError;
             toast.error(msg, { id: toastId });
             setIsLoading(false);
         }
     };
+
+    if (!mounted) return null; // Предотвратява трептене на езика при зареждане
 
     return (
         <div className="h-[100dvh] overflow-hidden flex flex-col bg-gradient-to-br from-slate-50 to-cyan-50/50 relative selection:bg-indigo-500 selection:text-white font-sans">
@@ -61,9 +135,26 @@ export default function Register() {
                         </span>
                     </div>
                     
-                    <Link href="/login" className="bg-white/80 backdrop-blur-sm text-indigo-700 font-extrabold px-7 py-2.5 rounded-xl border border-indigo-100 shadow-sm hover:bg-indigo-50 hover:shadow-md transition-all duration-300">
-                        Вход
-                    </Link>
+                    <div className="flex items-center gap-4">
+                        <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 shadow-inner">
+                            <button 
+                                onClick={() => changeLang('bg')} 
+                                className={`px-3 py-1.5 text-xs font-black rounded-md transition-all ${lang === 'bg' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                            >
+                                БГ
+                            </button>
+                            <button 
+                                onClick={() => changeLang('en')} 
+                                className={`px-3 py-1.5 text-xs font-black rounded-md transition-all ${lang === 'en' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                            >
+                                EN
+                            </button>
+                        </div>
+
+                        <Link href="/login" className="hidden sm:block bg-white/80 backdrop-blur-sm text-indigo-700 font-extrabold px-7 py-2.5 rounded-xl border border-indigo-100 shadow-sm hover:bg-indigo-50 hover:shadow-md transition-all duration-300">
+                            {t.loginBtnNav}
+                        </Link>
+                    </div>
                 </div>
             </nav>
 
@@ -74,20 +165,20 @@ export default function Register() {
                         <div className="mx-auto bg-gradient-to-tr from-indigo-600 to-cyan-500 w-12 h-12 flex items-center justify-center rounded-2xl shadow-lg shadow-indigo-200 mb-3 transform -rotate-6 hover:rotate-0 transition-transform duration-500">
                             <UserPlus className="w-6 h-6 text-white" />
                         </div>
-                        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Нов акаунт</h1>
-                        <p className="text-[11px] font-black text-slate-400 tracking-widest uppercase mt-1.5">Създай своя профил</p>
+                        <h1 className="text-2xl font-black text-slate-900 tracking-tight">{t.title}</h1>
+                        <p className="text-[11px] font-black text-slate-400 tracking-widest uppercase mt-1.5">{t.subtitle}</p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-3">
                         <div>
-                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 ml-1">Имена</label>
+                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 ml-1">{t.nameLabel}</label>
                             <div className="relative group">
                                 <User className="w-4 h-4 text-slate-400 absolute left-4 top-3 group-focus-within:text-indigo-500 transition-colors" />
                                 <input 
                                     type="text" 
                                     required 
                                     value={formData.name}
-                                    placeholder="Иван Иванов"
+                                    placeholder={t.namePlaceholder}
                                     onChange={e => setFormData({...formData, name: e.target.value})}
                                     className="w-full bg-white/80 border border-slate-200/60 shadow-inner pl-11 pr-4 py-2.5 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm font-bold text-slate-800 placeholder:text-slate-400" 
                                 />
@@ -95,14 +186,14 @@ export default function Register() {
                         </div>
 
                         <div>
-                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 ml-1">Имейл Адрес</label>
+                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 ml-1">{t.emailLabel}</label>
                             <div className="relative group">
                                 <Mail className="w-4 h-4 text-slate-400 absolute left-4 top-3 group-focus-within:text-indigo-500 transition-colors" />
                                 <input 
                                     type="email" 
                                     required 
                                     value={formData.email}
-                                    placeholder="ivan@example.com"
+                                    placeholder={t.emailPlaceholder}
                                     onChange={e => setFormData({...formData, email: e.target.value})}
                                     className="w-full bg-white/80 border border-slate-200/60 shadow-inner pl-11 pr-4 py-2.5 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm font-bold text-slate-800 placeholder:text-slate-400" 
                                 />
@@ -110,14 +201,14 @@ export default function Register() {
                         </div>
 
                         <div>
-                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 ml-1">Парола</label>
+                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 ml-1">{t.passLabel}</label>
                             <div className="relative group">
                                 <Lock className="w-4 h-4 text-slate-400 absolute left-4 top-3 group-focus-within:text-indigo-500 transition-colors" />
                                 <input 
                                     type="password" 
                                     required 
                                     value={formData.password}
-                                    placeholder="••••••••"
+                                    placeholder={t.passPlaceholder}
                                     onChange={e => setFormData({...formData, password: e.target.value})}
                                     className="w-full bg-white/80 border border-slate-200/60 shadow-inner pl-11 pr-4 py-2.5 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm font-bold text-slate-800 placeholder:text-slate-400" 
                                 />
@@ -125,7 +216,7 @@ export default function Register() {
                         </div>
 
                         <div>
-                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 ml-1">Роля</label>
+                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 ml-1">{t.roleLabel}</label>
                             <div className="relative group">
                                 <Briefcase className="w-4 h-4 text-slate-400 absolute left-4 top-3 group-focus-within:text-indigo-500 transition-colors z-10" />
                                 <select 
@@ -134,9 +225,9 @@ export default function Register() {
                                     onChange={e => setFormData({...formData, role_id: e.target.value})}
                                     className="w-full bg-white/80 border border-slate-200/60 shadow-inner pl-11 pr-4 py-2.5 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm font-bold text-slate-800 appearance-none relative z-0"
                                 >
-                                    <option value="" className="text-slate-400">Избери роля...</option>
+                                    <option value="" className="text-slate-400">{t.selectRole}</option>
                                     {roles.map((r: any) => (
-                                        <option key={r.id} value={r.id} className="text-slate-800 capitalize">{r.name}</option>
+                                        <option key={r.id} value={r.id} className="text-slate-800 capitalize">{translateRole(r.name, lang)}</option>
                                     ))}
                                 </select>
                             </div>
@@ -147,15 +238,15 @@ export default function Register() {
                             disabled={isLoading}
                             className="w-full bg-gradient-to-r from-indigo-600 to-cyan-500 hover:from-indigo-700 hover:to-cyan-600 text-white py-3.5 rounded-2xl font-black tracking-widest text-sm shadow-lg shadow-indigo-200 hover:shadow-cyan-500/40 hover:-translate-y-0.5 transition-all duration-300 flex justify-center items-center mt-4 disabled:opacity-70 disabled:cursor-not-allowed"
                         >
-                            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'РЕГИСТРИРАЙ СЕ'}
+                            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : t.submitBtn}
                         </button>
                     </form>
                     
                     <div className="mt-4 text-center border-t border-slate-200/50 pt-4">
                         <p className="text-slate-500 font-bold text-sm">
-                            Вече имаш акаунт? {' '}
+                            {t.hasAccount} {' '}
                             <Link href="/login" className="text-indigo-600 hover:text-indigo-700 transition-colors decoration-indigo-200 underline underline-offset-4">
-                                Влез тук
+                                {t.loginHere}
                             </Link>
                         </p>
                     </div>

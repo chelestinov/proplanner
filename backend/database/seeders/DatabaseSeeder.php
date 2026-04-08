@@ -4,38 +4,54 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\User;
+use App\Models\Category;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
+    /**
+     * Seed the application's database.
+     */
     public function run(): void
     {
-        // Създаваме точно ролите от твоето условие
-        $roles = ['owner', 'frontend', 'backend', 'pm', 'qa', 'designer'];
+        // 1. Почистване на кеша за правата (важно за Spatie)
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        // 2. Създаване на всички нужни роли
+        $roles = [
+            'owner', 'frontend', 'backend', 'QA', 'PM', 'designer', 'video_editor', 'admin', 'user'
+        ];
+
         foreach ($roles as $role) {
             Role::firstOrCreate(['name' => $role]);
         }
 
-        // Потребител 1: Иван Иванов
-        $ivan = User::firstOrCreate(
+        // 3. Създаване на основните категории
+        $categories = [
+            'Чатботове и Текст',
+            'Изображения и Видео',
+            'Програмиране'
+        ];
+
+        foreach ($categories as $category) {
+            Category::firstOrCreate(['name' => $category]);
+        }
+
+        // 4. Създаване на главния Admin (Owner) акаунт
+        $admin = User::firstOrCreate(
             ['email' => 'ivan@admin.local'],
-            ['name' => 'Иван Иванов', 'password' => Hash::make('password')]
+            [
+                'name' => 'Иван Иванов',
+                'password' => Hash::make('password'),
+                // Слагаме email_verified_at, за да не иска допълнително потвърждение при първи вход
+                'email_verified_at' => now(), 
+            ]
         );
-        $ivan->assignRole('owner');
 
-        // Потребител 2: Елена Петрова
-        $elena = User::firstOrCreate(
-            ['email' => 'elena@frontend.local'],
-            ['name' => 'Елена Петрова', 'password' => Hash::make('password')]
-        );
-        $elena->assignRole('frontend');
-
-        // Потребител 3: Петър Георгиев
-        $petar = User::firstOrCreate(
-            ['email' => 'petar@backend.local'],
-            ['name' => 'Петър Георгиев', 'password' => Hash::make('password')]
-        );
-        $petar->assignRole('backend');
+        // Прикачване на ролята 'owner' към Иван
+        if (!$admin->hasRole('owner')) {
+            $admin->assignRole('owner');
+        }
     }
 }
