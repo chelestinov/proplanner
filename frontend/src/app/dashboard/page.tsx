@@ -128,6 +128,23 @@ const translateCategory = (catName: string, lang: 'bg' | 'en') => {
     return map[catName.toLowerCase()]?.[lang] || catName;
 };
 
+// НОВО: "Умната" функция за превод на имена. Хваща и кирилица, и латиница.
+const translateName = (name: string, lang: 'bg' | 'en') => {
+    if (!name || typeof name !== 'string') return name || '';
+    
+    // Правим името с малки букви и махаме излишни интервали за 100% точно съвпадение
+    const normalizedName = name.trim().toLowerCase();
+    
+    const map: any = {
+        'иван иванов': { bg: 'Иван Иванов', en: 'Ivan Ivanov' },
+        'ivan ivanov': { bg: 'Иван Иванов', en: 'Ivan Ivanov' },
+        'admin user': { bg: 'Администратор', en: 'Admin User' },
+        'admin': { bg: 'Админ', en: 'Admin' }
+    };
+    
+    return map[normalizedName]?.[lang] || name;
+};
+
 export default function Dashboard() {
     const [user, setUser] = useState<any>(null);
     const [lang, setLang] = useState<'bg' | 'en'>('bg');
@@ -460,7 +477,9 @@ export default function Dashboard() {
                             <div className="flex items-center gap-4 border-l border-slate-200/60 pl-4 md:pl-6">
                                 <div className="hidden md:flex flex-col items-end justify-center">
                                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{t.hello}</span>
-                                    <span className="text-sm font-extrabold text-slate-800 leading-tight">{user.name}</span>
+                                    
+                                    <span className="text-sm font-extrabold text-slate-800 leading-tight">{translateName(user.name, lang)}</span>
+                                    
                                     <div className="flex items-center gap-1.5 mt-1">
                                         <span className="text-[9px] font-bold text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded-md shadow-sm">ID:{user.id}</span>
                                         <span className="text-[9px] font-black text-indigo-700 bg-indigo-100/80 px-2 py-0.5 rounded-full uppercase tracking-widest shadow-sm">
@@ -596,7 +615,7 @@ export default function Dashboard() {
                                             <div key={review.id} className="bg-white/50 p-2.5 rounded-xl border border-slate-100 shadow-sm">
                                                 <div className="flex justify-between items-center mb-1">
                                                     <span className="font-bold text-indigo-600 text-[10px] uppercase tracking-wider">
-                                                        {review.user?.name || t.anonymous}
+                                                        {review.user?.name ? translateName(review.user.name, lang) : t.anonymous}
                                                     </span>
                                                     <span className="text-amber-400 text-[10px] flex">
                                                         {'★'.repeat(review.rating)}
@@ -623,7 +642,7 @@ export default function Dashboard() {
                                             <UserCircle className="w-6 h-6 text-slate-400" />
                                         )}
                                         <div className="flex flex-col">
-                                            <span className="text-[10px] font-black text-slate-800 leading-none">{t.user?.name || t.system}</span>
+                                            <span className="text-[10px] font-black text-slate-800 leading-none">{t.user?.name ? translateName(t.user.name, lang) : t.system}</span>
                                             <span className="text-[9px] font-bold text-slate-400 mt-0.5">{formatDate(t.created_at, lang)}</span>
                                         </div>
                                     </div>
